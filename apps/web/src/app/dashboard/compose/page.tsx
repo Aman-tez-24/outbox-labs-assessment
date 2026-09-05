@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import "./compose.css";
 import { apiFetch } from "@/lib/api";
 import type { Sender, User } from "@/lib/types";
-
+import { Paperclip } from "lucide-react";
 interface CampaignResponse {
   campaignId: string;
   totalEmails: number;
@@ -55,6 +55,8 @@ export default function ComposePage() {
 
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [attachments, setAttachments] = useState<File[]>([]);
+  const attachmentInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -204,7 +206,17 @@ export default function ComposePage() {
   function focusEditor() {
     editorRef.current?.focus();
   }
+  function formatFileSize(bytes: number) {
+    if (bytes < 1024) return `${bytes} B`;
 
+    const kb = bytes / 1024;
+
+    if (kb < 1024) {
+      return `${kb.toFixed(1)} KB`;
+    }
+
+    return `${(kb / 1024).toFixed(1)} MB`;
+  }
   function execEditorCommand(command: string, value?: string) {
     focusEditor();
 
@@ -304,19 +316,48 @@ export default function ComposePage() {
     reader.readAsText(file);
     event.target.value = "";
   }
+
   function handleAttachmentUpload(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
+    const files = Array.from(event.target.files ?? []);
 
-    if (!file) return;
+    if (!files.length) return;
 
-    console.log("[Compose] Attachment selected:", {
-      name: file.name,
-      type: file.type,
-      size: file.size,
+    setAttachments((current) => {
+      const existing = new Set(
+        current.map((file) => `${file.name}-${file.size}-${file.lastModified}`),
+      );
+
+      const newFiles = files.filter(
+        (file) =>
+          !existing.has(`${file.name}-${file.size}-${file.lastModified}`),
+      );
+
+      return [...current, ...newFiles];
     });
 
-    // Attachment upload/storage can be connected here later.
     event.target.value = "";
+  }
+  function handleEditorPaste(event: React.ClipboardEvent<HTMLDivElement>) {
+    event.preventDefault();
+
+    const html = event.clipboardData.getData("text/html");
+    const text = event.clipboardData.getData("text/plain");
+
+    if (html) {
+      document.execCommand("insertHTML", false, html);
+    } else {
+      document.execCommand("insertText", false, text);
+    }
+
+    if (editorRef.current) {
+      setBody(editorRef.current.innerHTML);
+    }
+  }
+
+  function removeAttachment(index: number) {
+    setAttachments((current) =>
+      current.filter((_, fileIndex) => fileIndex !== index),
+    );
   }
   function addManualLead(event: React.KeyboardEvent<HTMLInputElement>) {
     const input = event.currentTarget;
@@ -488,7 +529,9 @@ export default function ComposePage() {
             </svg>
 
             <input
+              ref={attachmentInputRef}
               type="file"
+              multiple
               className="compose-hidden-input"
               onChange={handleAttachmentUpload}
             />
@@ -712,10 +755,44 @@ export default function ComposePage() {
                 className="compose-rich-editor"
                 contentEditable
                 suppressContentEditableWarning
-                data-placeholder="Type your email..."
+                data-placeholder="Write your email..."
                 onInput={handleEditorInput}
-                onFocus={() => setActiveFormat(null)}
+                onPaste={handleEditorPaste}
               />
+
+              {attachments.length > 0 && (
+                <div className="compose-attachments">
+                  {attachments.map((file, index) => (
+                    <div
+                      key={`${file.name}-${file.size}-${file.lastModified}`}
+                      className="compose-attachment"
+                    >
+                      <div className="compose-attachment-icon">
+                        <Paperclip size={15} />
+                      </div>
+
+                      <div className="compose-attachment-info">
+                        <span className="compose-attachment-name">
+                          {file.name}
+                        </span>
+
+                        <span className="compose-attachment-size">
+                          {formatFileSize(file.size)}
+                        </span>
+                      </div>
+
+                      <button
+                        type="button"
+                        className="compose-attachment-remove"
+                        onClick={() => removeAttachment(index)}
+                        aria-label={`Remove ${file.name}`}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
 
               <div className="compose-toolbar">
                 {/* Undo / Redo */}
