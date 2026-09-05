@@ -1,0 +1,140 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum EmailStatus {
+  scheduled
+  processing
+  sent
+  failed
+}
+
+model User {
+  id        String   @id @default(uuid())
+  googleId  String   @unique
+  name      String
+  email     String   @unique
+  avatarUrl String?
+
+  senders         Sender[]
+  campaigns       Campaign[]
+  slackConnection SlackConnection?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+model Sender {
+  id              String @id @default(uuid())
+  userId          String
+  name            String
+  email           String
+  etherealUser    String
+  etherealPassword String
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  campaigns Campaign[]
+  emails    Email[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, email])
+  @@index([userId])
+
+  @@map("senders")
+}
+
+model Campaign {
+  id          String   @id @default(uuid())
+  userId      String
+  senderId    String
+
+  subject     String
+  body        String
+
+  startTime   DateTime
+  delayMs     Int
+  hourlyLimit Int
+
+  totalEmails Int
+
+  idempotencyKey String
+
+  user        User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sender      Sender @relation(fields: [senderId], references: [id])
+  emails      Email[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, idempotencyKey])
+  @@index([userId])
+  @@index([senderId])
+  @@index([createdAt])
+
+  @@map("campaigns")
+}
+
+model Email {
+  id           String      @id @default(uuid())
+  campaignId   String
+  senderId     String
+
+  recipient    String
+  subject      String
+  body         String
+
+  scheduledAt  DateTime
+  sentAt       DateTime?
+
+  status       EmailStatus @default(scheduled)
+
+  bullJobId    String?     @unique
+
+  attempts     Int         @default(0)
+  processingStartedAt DateTime?
+  errorMessage String?
+
+  campaign     Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  sender       Sender   @relation(fields: [senderId], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([campaignId])
+  @@index([senderId])
+  @@index([recipient])
+  @@index([scheduledAt])
+  @@index([status])
+  @@index([status, scheduledAt])
+  @@index([status, processingStartedAt])
+
+  @@map("emails")
+}
+
+model SlackConnection {
+  id           String @id @default(uuid())
+  userId       String @unique
+
+  teamId       String
+  teamName     String
+  accessToken  String
+
+  channelId    String?
+  channelName  String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("slack_connections")
+}
