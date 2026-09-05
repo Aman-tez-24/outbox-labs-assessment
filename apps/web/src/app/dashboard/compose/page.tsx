@@ -42,7 +42,7 @@ export default function ComposePage() {
   const recipientFileInputRef = useRef<HTMLInputElement | null>(null);
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
-
+  const [showSchedule, setShowSchedule] = useState(false);
   const [leads, setLeads] = useState<string[]>([]);
   const [pasteLeads, setPasteLeads] = useState("");
 
@@ -304,6 +304,20 @@ export default function ComposePage() {
     reader.readAsText(file);
     event.target.value = "";
   }
+  function handleAttachmentUpload(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+
+    if (!file) return;
+
+    console.log("[Compose] Attachment selected:", {
+      name: file.name,
+      type: file.type,
+      size: file.size,
+    });
+
+    // Attachment upload/storage can be connected here later.
+    event.target.value = "";
+  }
   function addManualLead(event: React.KeyboardEvent<HTMLInputElement>) {
     const input = event.currentTarget;
 
@@ -458,7 +472,7 @@ export default function ComposePage() {
         <div className="compose-header-actions">
           <label
             className="compose-icon-button compose-file-button"
-            title="Upload recipients"
+            title="Attach file"
           >
             <svg
               width="20"
@@ -475,30 +489,19 @@ export default function ComposePage() {
 
             <input
               type="file"
-              accept=".csv,.txt"
               className="compose-hidden-input"
-              onChange={handleFileUpload}
+              onChange={handleAttachmentUpload}
             />
           </label>
 
           <button
             type="button"
-            className="compose-icon-button"
+            className={`compose-icon-button ${
+              showSchedule ? "compose-icon-button-active" : ""
+            }`}
             title="Schedule email"
-            onClick={() => {
-              const tomorrow = new Date();
-
-              tomorrow.setDate(tomorrow.getDate() + 1);
-              tomorrow.setHours(9, 0, 0, 0);
-
-              const formatted = new Date(
-                tomorrow.getTime() - tomorrow.getTimezoneOffset() * 60000,
-              )
-                .toISOString()
-                .slice(0, 16);
-
-              setStartTime(formatted);
-            }}
+            aria-label="Schedule email"
+            onClick={() => setShowSchedule((current) => !current)}
           >
             <svg
               width="20"
@@ -641,7 +644,7 @@ export default function ComposePage() {
                 {leads.length > 0 && (
                   <div className="compose-recipient-count">
                     {leads.length} recipient
-                    {leads.length !== 1 ? "s" : ""} added
+                    {leads.length === 1 ? "" : "s"} added
                   </div>
                 )}
               </div>
@@ -893,168 +896,172 @@ export default function ComposePage() {
         </form>
 
         {/* SEND LATER */}
-        <div className="compose-schedule-panel">
-          <div className="compose-schedule-header">
-            <div>
-              <span className="compose-schedule-eyebrow">DELIVERY</span>
+        {showSchedule && (
+          <div className="compose-schedule-panel">
+            <div className="compose-schedule-header">
+              <div>
+                <span className="compose-schedule-eyebrow">DELIVERY</span>
 
-              <h3 className="compose-schedule-title">Send later</h3>
+                <h3 className="compose-schedule-title">Send later</h3>
 
-              <p className="compose-schedule-description">
-                Choose when your campaign should start.
-              </p>
-            </div>
+                <p className="compose-schedule-description">
+                  Choose when your campaign should start.
+                </p>
+              </div>
 
-            <div className="compose-schedule-icon">
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.7"
-              >
-                <rect x="3" y="4" width="18" height="17" rx="3" />
-                <path d="M16 2v4M8 2v4M3 10h18" />
-                <path d="M12 14v3l2 1" />
-              </svg>
-            </div>
-          </div>
-
-          <div className="compose-selected-date">
-            <div className="compose-selected-date-icon">
-              <svg
-                width="17"
-                height="17"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-              >
-                <circle cx="12" cy="12" r="9" />
-                <path d="M12 7v5l3 2" />
-              </svg>
-            </div>
-
-            <div className="compose-selected-date-content">
-              <span className="compose-selected-date-label">Scheduled for</span>
-
-              <strong>
-                {startTime
-                  ? new Date(startTime).toLocaleString([], {
-                      weekday: "short",
-                      month: "short",
-                      day: "numeric",
-                      hour: "numeric",
-                      minute: "2-digit",
-                    })
-                  : "Not scheduled"}
-              </strong>
-            </div>
-          </div>
-
-          <div className="compose-date-input-wrapper">
-            <label className="compose-date-label">Custom date & time</label>
-
-            <input
-              type="datetime-local"
-              value={startTime}
-              min={new Date(Date.now() + 60000).toISOString().slice(0, 16)}
-              onChange={(event) => setStartTime(event.target.value)}
-              className="compose-date-input"
-            />
-          </div>
-
-          <div className="compose-preset-heading">Quick schedule</div>
-
-          <div className="compose-presets">
-            {[
-              ["Tomorrow", "9:00 AM", 9],
-              ["Tomorrow", "10:00 AM", 10],
-              ["Tomorrow", "11:00 AM", 11],
-              ["Tomorrow", "3:00 PM", 15],
-            ].map(([day, time, hour]) => {
-              const tomorrow = new Date();
-              tomorrow.setDate(tomorrow.getDate() + 1);
-              tomorrow.setHours(Number(hour), 0, 0, 0);
-
-              const value = new Date(
-                tomorrow.getTime() - tomorrow.getTimezoneOffset() * 60000,
-              )
-                .toISOString()
-                .slice(0, 16);
-
-              const selected = startTime === value;
-
-              return (
-                <button
-                  key={String(hour)}
-                  type="button"
-                  className={`compose-preset ${selected ? "selected" : ""}`}
-                  onClick={() => setStartTime(value)}
+              <div className="compose-schedule-icon">
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.7"
                 >
-                  <span className="compose-preset-left">
-                    <span className="compose-preset-day">{day}</span>
-
-                    <span className="compose-preset-time">{time}</span>
-                  </span>
-
-                  <span className="compose-preset-check">
-                    {selected ? "✓" : ""}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="compose-schedule-summary">
-            <div className="compose-summary-row">
-              <span>Recipients</span>
-              <strong>{totalLeads}</strong>
+                  <rect x="3" y="4" width="18" height="17" rx="3" />
+                  <path d="M16 2v4M8 2v4M3 10h18" />
+                  <path d="M12 14v3l2 1" />
+                </svg>
+              </div>
             </div>
 
-            <div className="compose-summary-row">
-              <span>Delay</span>
-              <strong>{delaySeconds}s</strong>
+            <div className="compose-selected-date">
+              <div className="compose-selected-date-icon">
+                <svg
+                  width="17"
+                  height="17"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                >
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M12 7v5l3 2" />
+                </svg>
+              </div>
+
+              <div className="compose-selected-date-content">
+                <span className="compose-selected-date-label">
+                  Scheduled for
+                </span>
+
+                <strong>
+                  {startTime
+                    ? new Date(startTime).toLocaleString([], {
+                        weekday: "short",
+                        month: "short",
+                        day: "numeric",
+                        hour: "numeric",
+                        minute: "2-digit",
+                      })
+                    : "Not scheduled"}
+                </strong>
+              </div>
             </div>
 
-            <div className="compose-summary-row">
-              <span>Hourly limit</span>
-              <strong>{hourlyLimit}</strong>
+            <div className="compose-date-input-wrapper">
+              <label className="compose-date-label">Custom date & time</label>
+
+              <input
+                type="datetime-local"
+                value={startTime}
+                min={new Date(Date.now() + 60000).toISOString().slice(0, 16)}
+                onChange={(event) => setStartTime(event.target.value)}
+                className="compose-date-input"
+              />
+            </div>
+
+            <div className="compose-preset-heading">Quick schedule</div>
+
+            <div className="compose-presets">
+              {[
+                ["Tomorrow", "9:00 AM", 9],
+                ["Tomorrow", "10:00 AM", 10],
+                ["Tomorrow", "11:00 AM", 11],
+                ["Tomorrow", "3:00 PM", 15],
+              ].map(([day, time, hour]) => {
+                const tomorrow = new Date();
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                tomorrow.setHours(Number(hour), 0, 0, 0);
+
+                const value = new Date(
+                  tomorrow.getTime() - tomorrow.getTimezoneOffset() * 60000,
+                )
+                  .toISOString()
+                  .slice(0, 16);
+
+                const selected = startTime === value;
+
+                return (
+                  <button
+                    key={String(hour)}
+                    type="button"
+                    className={`compose-preset ${selected ? "selected" : ""}`}
+                    onClick={() => setStartTime(value)}
+                  >
+                    <span className="compose-preset-left">
+                      <span className="compose-preset-day">{day}</span>
+
+                      <span className="compose-preset-time">{time}</span>
+                    </span>
+
+                    <span className="compose-preset-check">
+                      {selected ? "✓" : ""}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="compose-schedule-summary">
+              <div className="compose-summary-row">
+                <span>Recipients</span>
+                <strong>{totalLeads}</strong>
+              </div>
+
+              <div className="compose-summary-row">
+                <span>Delay</span>
+                <strong>{delaySeconds}s</strong>
+              </div>
+
+              <div className="compose-summary-row">
+                <span>Hourly limit</span>
+                <strong>{hourlyLimit}</strong>
+              </div>
+            </div>
+
+            <div className="compose-schedule-actions">
+              <button
+                type="button"
+                className="compose-cancel-button"
+                onClick={() => setStartTime("")}
+              >
+                Clear
+              </button>
+
+              <button
+                type="button"
+                className="compose-done-button"
+                disabled={!startTime}
+                onClick={() => {
+                  if (!startTime) {
+                    setError("Please select a start time.");
+                    return;
+                  }
+
+                  setError(null);
+
+                  document.getElementById("compose-form")?.scrollIntoView({
+                    behavior: "smooth",
+                    block: "start",
+                  });
+                }}
+              >
+                Done
+              </button>
             </div>
           </div>
-
-          <div className="compose-schedule-actions">
-            <button
-              type="button"
-              className="compose-cancel-button"
-              onClick={() => setStartTime("")}
-            >
-              Clear
-            </button>
-
-            <button
-              type="button"
-              className="compose-done-button"
-              disabled={!startTime}
-              onClick={() => {
-                if (!startTime) {
-                  setError("Please select a start time.");
-                  return;
-                }
-
-                setError(null);
-
-                document.getElementById("compose-form")?.scrollIntoView({
-                  behavior: "smooth",
-                  block: "start",
-                });
-              }}
-            >
-              Done
-            </button>
-          </div>
-        </div>
+        )}
       </div>
     </main>
   );
