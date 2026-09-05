@@ -6,6 +6,7 @@ import type {
   CreateCampaignInput,
   CampaignResponse,
 } from "../types/campaign.types.js";
+import crypto from "node:crypto";
 
 export async function createCampaign(
   userId: string,
@@ -60,21 +61,21 @@ export async function createCampaign(
     throw new Error("Sender not found");
   }
 
-  const campaign = await prisma.campaign.create({
-    data: {
-      userId,
-      senderId: sender.id,
+ const idempotencyKey = crypto.randomUUID();
 
-      subject,
-      body,
-
-      startTime,
-      delayMs: input.delayMs,
-      hourlyLimit: input.hourlyLimit,
-
-      totalEmails: leads.length,
-    },
-  });
+const campaign = await prisma.campaign.create({
+  data: {
+    userId,
+    senderId: sender.id,
+    subject,
+    body,
+    startTime,
+    delayMs: input.delayMs,
+    hourlyLimit: input.hourlyLimit,
+    totalEmails: leads.length,
+    idempotencyKey,
+  },
+});
 
   const emails = await prisma.$transaction(
     leads.map((recipient, index) => {
