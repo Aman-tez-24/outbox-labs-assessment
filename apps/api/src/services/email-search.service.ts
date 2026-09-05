@@ -2,69 +2,78 @@ import { elasticsearch, EMAIL_INDEX } from "../integrations/elasticsearch/elasti
 import type { EmailSearchDocument } from "../integrations/elasticsearch/elasticsearch.types.js";
 
 export async function ensureEmailIndex(): Promise<void> {
-  const exists = await elasticsearch.indices.exists({
-    index: EMAIL_INDEX,
-  });
+  try {
+    const exists = await elasticsearch.indices.exists({
+      index: EMAIL_INDEX,
+    });
 
-  if (exists) {
-    return;
-  }
+    if (exists) {
+      return;
+    }
 
-  await elasticsearch.indices.create({
-    index: EMAIL_INDEX,
-    mappings: {
-      properties: {
-        emailId: { type: "keyword" },
-        userId: { type: "keyword" },
-        campaignId: { type: "keyword" },
-        senderId: { type: "keyword" },
+    await elasticsearch.indices.create({
+      index: EMAIL_INDEX,
+      mappings: {
+        properties: {
+          emailId: { type: "keyword" },
+          userId: { type: "keyword" },
+          campaignId: { type: "keyword" },
+          senderId: { type: "keyword" },
 
-        recipient: {
-          type: "text",
-          fields: {
-            keyword: {
-              type: "keyword",
+          recipient: {
+            type: "text",
+            fields: {
+              keyword: {
+                type: "keyword",
+              },
             },
           },
-        },
 
-        subject: {
-          type: "text",
-          fields: {
-            keyword: {
-              type: "keyword",
+          subject: {
+            type: "text",
+            fields: {
+              keyword: {
+                type: "keyword",
+              },
             },
           },
-        },
 
-        body: {
-          type: "text",
-        },
+          body: {
+            type: "text",
+          },
 
-        scheduledAt: {
-          type: "date",
-        },
+          scheduledAt: {
+            type: "date",
+          },
 
-        sentAt: {
-          type: "date",
-        },
+          sentAt: {
+            type: "date",
+          },
 
-        status: {
-          type: "keyword",
-        },
+          status: {
+            type: "keyword",
+          },
 
-        createdAt: {
-          type: "date",
-        },
+          createdAt: {
+            type: "date",
+          },
 
-        updatedAt: {
-          type: "date",
+          updatedAt: {
+            type: "date",
+          },
         },
       },
-    },
-  });
+    });
 
-  console.log(`Elasticsearch index "${EMAIL_INDEX}" created`);
+    console.log(
+      `Elasticsearch index "${EMAIL_INDEX}" created`,
+    );
+  } catch (error) {
+    console.error(
+      "Elasticsearch unavailable. Starting API without search index:",
+      error,
+    );
+  }
 }
 
 export async function indexEmail(
