@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import "./compose.css";
 import { apiFetch } from "@/lib/api";
@@ -34,7 +34,8 @@ function withTimeout<T>(
 
 export default function ComposePage() {
   const router = useRouter();
-
+  const editorRef = useRef<HTMLDivElement | null>(null);
+  const [activeFormat, setActiveFormat] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [senders, setSenders] = useState<Sender[]>([]);
   const [senderId, setSenderId] = useState("");
@@ -200,7 +201,55 @@ export default function ComposePage() {
 
     setLeads([...new Set(valid)]);
   }
+  function focusEditor() {
+    editorRef.current?.focus();
+  }
 
+  function execEditorCommand(command: string, value?: string) {
+    focusEditor();
+
+    document.execCommand(command, false, value);
+
+    if (editorRef.current) {
+      setBody(editorRef.current.innerHTML);
+    }
+
+    setActiveFormat(command);
+  }
+
+  function handleEditorInput() {
+    if (!editorRef.current) return;
+
+    setBody(editorRef.current.innerHTML);
+  }
+
+  function toggleFormat(command: string) {
+    execEditorCommand(command);
+  }
+
+  function insertLink() {
+    focusEditor();
+
+    const url = window.prompt("Enter URL");
+
+    if (!url) return;
+
+    document.execCommand("createLink", false, url);
+
+    if (editorRef.current) {
+      setBody(editorRef.current.innerHTML);
+    }
+  }
+
+  function insertQuote() {
+    focusEditor();
+
+    document.execCommand("formatBlock", false, "blockquote");
+
+    if (editorRef.current) {
+      setBody(editorRef.current.innerHTML);
+    }
+  }
   function handleFileUpload(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
 
@@ -557,104 +606,188 @@ export default function ComposePage() {
 
             {/* EDITOR */}
             <div className="compose-editor">
-              <textarea
-                value={body}
-                onChange={(event) => setBody(event.target.value)}
-                placeholder="Type Your Reply..."
-                className="compose-textarea"
+              <div
+                ref={editorRef}
+                className="compose-rich-editor"
+                contentEditable
+                suppressContentEditableWarning
+                data-placeholder="Type your email..."
+                onInput={handleEditorInput}
+                onFocus={() => setActiveFormat(null)}
               />
 
               <div className="compose-toolbar">
-                <button type="button" className="compose-tool">
+                {/* Undo / Redo */}
+                <button
+                  type="button"
+                  className="compose-tool"
+                  title="Undo"
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={() => execEditorCommand("undo")}
+                >
                   ↶
                 </button>
 
-                <button type="button" className="compose-tool">
+                <button
+                  type="button"
+                  className="compose-tool"
+                  title="Redo"
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={() => execEditorCommand("redo")}
+                >
                   ↷
                 </button>
 
                 <span className="compose-divider" />
 
-                <button
-                  type="button"
-                  className="compose-tool compose-font-tool"
+                {/* Font */}
+                <select
+                  className="compose-font-select"
+                  title="Font"
+                  defaultValue="Inter"
+                  onChange={(event) => {
+                    execEditorCommand("fontName", event.target.value);
+                  }}
                 >
-                  Tt
-                </button>
+                  <option value="Inter">Inter</option>
+                  <option value="Arial">Arial</option>
+                  <option value="Georgia">Georgia</option>
+                  <option value="Verdana">Verdana</option>
+                  <option value="Times New Roman">Times</option>
+                </select>
 
                 <span className="compose-divider" />
 
-                <button type="button" className="compose-tool compose-bold">
+                {/* Bold */}
+                <button
+                  type="button"
+                  className={`compose-tool compose-bold ${
+                    activeFormat === "bold" ? "active" : ""
+                  }`}
+                  title="Bold"
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={() => toggleFormat("bold")}
+                >
                   B
                 </button>
 
-                <button type="button" className="compose-tool compose-italic">
+                {/* Italic */}
+                <button
+                  type="button"
+                  className={`compose-tool compose-italic ${
+                    activeFormat === "italic" ? "active" : ""
+                  }`}
+                  title="Italic"
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={() => toggleFormat("italic")}
+                >
                   I
                 </button>
 
+                {/* Underline */}
                 <button
                   type="button"
-                  className="compose-tool compose-underline"
+                  className={`compose-tool compose-underline ${
+                    activeFormat === "underline" ? "active" : ""
+                  }`}
+                  title="Underline"
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={() => toggleFormat("underline")}
                 >
                   U
                 </button>
 
                 <span className="compose-divider" />
 
-                <button type="button" className="compose-tool">
+                {/* Alignment */}
+                <button
+                  type="button"
+                  className="compose-tool"
+                  title="Align left"
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={() => execEditorCommand("justifyLeft")}
+                >
                   ≡
                 </button>
 
-                <button type="button" className="compose-tool">
-                  ↕
+                <button
+                  type="button"
+                  className="compose-tool"
+                  title="Align center"
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={() => execEditorCommand("justifyCenter")}
+                >
+                  ≡
+                </button>
+
+                <button
+                  type="button"
+                  className="compose-tool"
+                  title="Align right"
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={() => execEditorCommand("justifyRight")}
+                >
+                  ≡
                 </button>
 
                 <span className="compose-divider" />
 
-                <button type="button" className="compose-tool">
-                  ☷
+                {/* Lists */}
+                <button
+                  type="button"
+                  className="compose-tool"
+                  title="Bulleted list"
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={() => execEditorCommand("insertUnorderedList")}
+                >
+                  •
                 </button>
 
-                <button type="button" className="compose-tool">
-                  ←
+                <button
+                  type="button"
+                  className="compose-tool"
+                  title="Numbered list"
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={() => execEditorCommand("insertOrderedList")}
+                >
+                  1.
                 </button>
 
-                <button type="button" className="compose-tool">
-                  →
-                </button>
+                <span className="compose-divider" />
 
-                <button type="button" className="compose-tool compose-quote">
+                {/* Quote */}
+                <button
+                  type="button"
+                  className="compose-tool compose-quote"
+                  title="Quote"
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={insertQuote}
+                >
                   "
                 </button>
 
-                <label className="compose-tool compose-image-upload">
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  >
-                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-
-                    <circle cx="8.5" cy="8.5" r="1.5" />
-
-                    <polyline points="21 15 16 10 5 21" />
-                  </svg>
-
-                  <input
-                    type="file"
-                    accept=".csv,.txt"
-                    className="compose-hidden-input"
-                    onChange={handleFileUpload}
-                  />
-                </label>
+                {/* Link */}
+                <button
+                  type="button"
+                  className="compose-tool"
+                  title="Insert link"
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={insertLink}
+                >
+                  ↗
+                </button>
 
                 <span className="compose-divider" />
 
-                <button type="button" className="compose-tool">
-                  #
+                {/* Clear formatting */}
+                <button
+                  type="button"
+                  className="compose-tool"
+                  title="Clear formatting"
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={() => execEditorCommand("removeFormat")}
+                >
+                  Tx
                 </button>
               </div>
             </div>
@@ -663,46 +796,134 @@ export default function ComposePage() {
 
         {/* SEND LATER */}
         <div className="compose-schedule-panel">
-          <h3 className="compose-schedule-title">Send Later</h3>
+          <div className="compose-schedule-header">
+            <div>
+              <span className="compose-schedule-eyebrow">DELIVERY</span>
+
+              <h3 className="compose-schedule-title">Send later</h3>
+
+              <p className="compose-schedule-description">
+                Choose when your campaign should start.
+              </p>
+            </div>
+
+            <div className="compose-schedule-icon">
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.7"
+              >
+                <rect x="3" y="4" width="18" height="17" rx="3" />
+                <path d="M16 2v4M8 2v4M3 10h18" />
+                <path d="M12 14v3l2 1" />
+              </svg>
+            </div>
+          </div>
+
+          <div className="compose-selected-date">
+            <div className="compose-selected-date-icon">
+              <svg
+                width="17"
+                height="17"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+              >
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 7v5l3 2" />
+              </svg>
+            </div>
+
+            <div className="compose-selected-date-content">
+              <span className="compose-selected-date-label">Scheduled for</span>
+
+              <strong>
+                {startTime
+                  ? new Date(startTime).toLocaleString([], {
+                      weekday: "short",
+                      month: "short",
+                      day: "numeric",
+                      hour: "numeric",
+                      minute: "2-digit",
+                    })
+                  : "Not scheduled"}
+              </strong>
+            </div>
+          </div>
 
           <div className="compose-date-input-wrapper">
+            <label className="compose-date-label">Custom date & time</label>
+
             <input
               type="datetime-local"
               value={startTime}
+              min={new Date(Date.now() + 60000).toISOString().slice(0, 16)}
               onChange={(event) => setStartTime(event.target.value)}
               className="compose-date-input"
             />
           </div>
 
+          <div className="compose-preset-heading">Quick schedule</div>
+
           <div className="compose-presets">
             {[
-              ["Tomorrow, 9:00 AM", 9],
-              ["Tomorrow, 10:00 AM", 10],
-              ["Tomorrow, 11:00 AM", 11],
-              ["Tomorrow, 3:00 PM", 15],
-            ].map(([label, hour]) => (
-              <button
-                key={String(hour)}
-                type="button"
-                className="compose-preset"
-                onClick={() => {
-                  const tomorrow = new Date();
+              ["Tomorrow", "9:00 AM", 9],
+              ["Tomorrow", "10:00 AM", 10],
+              ["Tomorrow", "11:00 AM", 11],
+              ["Tomorrow", "3:00 PM", 15],
+            ].map(([day, time, hour]) => {
+              const tomorrow = new Date();
+              tomorrow.setDate(tomorrow.getDate() + 1);
+              tomorrow.setHours(Number(hour), 0, 0, 0);
 
-                  tomorrow.setDate(tomorrow.getDate() + 1);
-                  tomorrow.setHours(Number(hour), 0, 0, 0);
+              const value = new Date(
+                tomorrow.getTime() - tomorrow.getTimezoneOffset() * 60000,
+              )
+                .toISOString()
+                .slice(0, 16);
 
-                  const formatted = new Date(
-                    tomorrow.getTime() - tomorrow.getTimezoneOffset() * 60000,
-                  )
-                    .toISOString()
-                    .slice(0, 16);
+              const selected = startTime === value;
 
-                  setStartTime(formatted);
-                }}
-              >
-                {label}
-              </button>
-            ))}
+              return (
+                <button
+                  key={String(hour)}
+                  type="button"
+                  className={`compose-preset ${selected ? "selected" : ""}`}
+                  onClick={() => setStartTime(value)}
+                >
+                  <span className="compose-preset-left">
+                    <span className="compose-preset-day">{day}</span>
+
+                    <span className="compose-preset-time">{time}</span>
+                  </span>
+
+                  <span className="compose-preset-check">
+                    {selected ? "✓" : ""}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="compose-schedule-summary">
+            <div className="compose-summary-row">
+              <span>Recipients</span>
+              <strong>{totalLeads}</strong>
+            </div>
+
+            <div className="compose-summary-row">
+              <span>Delay</span>
+              <strong>{delaySeconds}s</strong>
+            </div>
+
+            <div className="compose-summary-row">
+              <span>Hourly limit</span>
+              <strong>{hourlyLimit}</strong>
+            </div>
           </div>
 
           <div className="compose-schedule-actions">
@@ -711,12 +932,13 @@ export default function ComposePage() {
               className="compose-cancel-button"
               onClick={() => setStartTime("")}
             >
-              Cancel
+              Clear
             </button>
 
             <button
               type="button"
               className="compose-done-button"
+              disabled={!startTime}
               onClick={() => {
                 if (!startTime) {
                   setError("Please select a start time.");
@@ -724,6 +946,11 @@ export default function ComposePage() {
                 }
 
                 setError(null);
+
+                document.getElementById("compose-form")?.scrollIntoView({
+                  behavior: "smooth",
+                  block: "start",
+                });
               }}
             >
               Done
