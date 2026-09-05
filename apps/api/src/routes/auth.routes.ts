@@ -174,7 +174,7 @@ router.get(
             env.NODE_ENV ===
             "production",
 
-          sameSite: "lax",
+          sameSite: "none",
 
           maxAge:
             7 * 24 * 60 * 60 * 1000,
@@ -206,16 +206,14 @@ router.post(
   "/logout",
   (_req, res) => {
     res.clearCookie(
-      SESSION_COOKIE,
-      {
-        httpOnly: true,
-        secure:
-          env.NODE_ENV ===
-          "production",
-        sameSite: "lax",
-        path: "/",
-      }
-    );
+  SESSION_COOKIE,
+  {
+    httpOnly: true,
+    secure: env.NODE_ENV === "production",
+    sameSite: "none",
+    path: "/",
+  }
+);
 
     return res.json({
       success: true,
