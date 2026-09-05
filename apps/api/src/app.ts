@@ -42,6 +42,14 @@ app.use("/api/slack", slackRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
 
+app.get("/", (_req, res) => {
+  res.status(200).json({
+    success: true,
+    service: "reachinbox-api",
+    message: "ReachInbox API is running",
+  });
+});
+
 app.get("/health", (_req, res) => {
   res.status(200).json({
     status: "ok",
@@ -49,6 +57,7 @@ app.get("/health", (_req, res) => {
     timestamp: new Date().toISOString(),
   });
 });
+
 
 app.use("/health", healthRoutes);
 
