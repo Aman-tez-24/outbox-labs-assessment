@@ -131,16 +131,20 @@ const campaign = await prisma.campaign.create({
 
       await indexEmailById(email.id);
     }
-  } catch (error) {
-    console.error(
-      `Failed to enqueue campaign ${campaign.id}:`,
-      error,
-    );
+ } catch (error) {
+  console.error(
+    `[Campaign Scheduling Failed] campaign=${campaign.id}`,
+    error,
+  );
 
-    throw new Error(
-      "Campaign was created but scheduling failed",
-    );
+  if (error instanceof Error) {
+    console.error("Error name:", error.name);
+    console.error("Error message:", error.message);
+    console.error("Error stack:", error.stack);
   }
+
+  throw error;
+}
 
   return {
     campaignId: campaign.id,
