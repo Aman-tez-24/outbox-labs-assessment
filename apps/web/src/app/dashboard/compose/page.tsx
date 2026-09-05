@@ -39,7 +39,7 @@ export default function ComposePage() {
   const [user, setUser] = useState<User | null>(null);
   const [senders, setSenders] = useState<Sender[]>([]);
   const [senderId, setSenderId] = useState("");
-
+  const recipientFileInputRef = useRef<HTMLInputElement | null>(null);
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
 
@@ -304,7 +304,35 @@ export default function ComposePage() {
     reader.readAsText(file);
     event.target.value = "";
   }
+  function addManualLead(event: React.KeyboardEvent<HTMLInputElement>) {
+    const input = event.currentTarget;
 
+    if (event.key !== "Enter" && event.key !== ",") {
+      return;
+    }
+
+    event.preventDefault();
+
+    const value = input.value.trim().replace(/,$/, "");
+
+    if (!value) return;
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!emailRegex.test(value)) {
+      setError(`Invalid email address: ${value}`);
+      return;
+    }
+
+    if (leads.includes(value.toLowerCase())) {
+      input.value = "";
+      return;
+    }
+
+    setLeads((current) => [...current, value.toLowerCase()]);
+    input.value = "";
+    setError(null);
+  }
   async function handleSchedule(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -534,19 +562,89 @@ export default function ComposePage() {
             </div>
 
             {/* TO */}
-            <div className="compose-field">
-              <span className="compose-field-label">To</span>
+            <div className="compose-field compose-recipient-field">
+              <div className="compose-field-label">To</div>
 
-              <input
-                type="text"
-                value={pasteLeads}
-                onChange={(event) => {
-                  setPasteLeads(event.target.value);
-                  parsePastedLeads(event.target.value);
-                }}
-                placeholder="recipient@example.com"
-                className="compose-input"
-              />
+              <div className="compose-field-content">
+                <div className="compose-recipient-box">
+                  <div className="compose-recipient-chips">
+                    {leads.slice(0, 3).map((email) => (
+                      <span key={email} className="compose-recipient-chip">
+                        <span className="compose-recipient-email">{email}</span>
+
+                        <button
+                          type="button"
+                          className="compose-recipient-remove"
+                          title={`Remove ${email}`}
+                          onClick={() => {
+                            setLeads((current) =>
+                              current.filter((item) => item !== email),
+                            );
+                          }}
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+
+                    {leads.length > 3 && (
+                      <span className="compose-recipient-more">
+                        +{leads.length - 3}
+                      </span>
+                    )}
+
+                    <input
+                      type="text"
+                      className="compose-recipient-input"
+                      placeholder={
+                        leads.length === 0
+                          ? "Enter email addresses..."
+                          : "Add another..."
+                      }
+                      onKeyDown={addManualLead}
+                    />
+                  </div>
+
+                  <label
+                    htmlFor="recipient-csv-upload"
+                    className="compose-upload-button"
+                    title="Upload CSV or TXT file"
+                  >
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.9"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M12 3v12" />
+                      <path d="m7 8 5-5 5 5" />
+                      <path d="M5 14v4a3 3 0 0 0 3 3h8a3 3 0 0 0 3-3v-4" />
+                    </svg>
+
+                    <span>Upload</span>
+
+                    <input
+                      ref={recipientFileInputRef}
+                      id="recipient-csv-upload"
+                      type="file"
+                      accept=".csv,.txt,text/csv,text/plain"
+                      className="compose-hidden-input"
+                      onChange={handleFileUpload}
+                    />
+                  </label>
+                </div>
+
+                {leads.length > 0 && (
+                  <div className="compose-recipient-count">
+                    {leads.length} recipient
+                    {leads.length !== 1 ? "s" : ""} added
+                  </div>
+                )}
+              </div>
             </div>
 
             {leads.length > 0 && (
