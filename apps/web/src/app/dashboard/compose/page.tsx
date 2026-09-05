@@ -625,7 +625,7 @@ export default function ComposePage() {
                       <path d="M5 14v4a3 3 0 0 0 3 3h8a3 3 0 0 0 3-3v-4" />
                     </svg>
 
-                    <span>Upload</span>
+                    <span>Upload List</span>
 
                     <input
                       ref={recipientFileInputRef}

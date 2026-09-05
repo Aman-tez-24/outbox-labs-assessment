@@ -152,6 +152,7 @@ body {
   box-sizing: border-box;
   margin: 0 auto;
   padding-top: 24px;
+  margin-left: 140px;
 }
 
 /* =========================
@@ -1023,8 +1024,8 @@ body {
   padding: 0 12px;
   border: 1px solid var(--green);
   border-radius: 8px;
-  background: var(--green);
-  color: #ffffff;
+  background: transparent;
+  color: var(--green);
   font-size: 11px;
   font-weight: 600;
   font-family: inherit;
@@ -1040,7 +1041,7 @@ body {
   background: var(--green-dark);
   border-color: var(--green-dark);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(60, 167, 110, 0.18);
+  
 }
 
 .compose-upload-button:active {
