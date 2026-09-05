@@ -1041,8 +1041,7 @@ export default function ComposePage() {
 
               <button
                 type="button"
-                className="compose-done-button"
-                disabled={!startTime}
+                className="compose-schedule-done"
                 onClick={() => {
                   if (!startTime) {
                     setError("Please select a start time.");
@@ -1050,6 +1049,7 @@ export default function ComposePage() {
                   }
 
                   setError(null);
+                  setShowSchedule(false);
 
                   document.getElementById("compose-form")?.scrollIntoView({
                     behavior: "smooth",
