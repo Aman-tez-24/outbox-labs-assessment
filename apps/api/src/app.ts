@@ -1,6 +1,6 @@
 import cors from "cors";
 import express from "express";
-
+import helmet from "helmet";
 import morgan from "morgan";
 import slackRoutes from "./routes/slack.routes.js";
 import { env } from "./config/env.js";
@@ -16,9 +16,7 @@ import emailRoutes from "./routes/email.routes.js";
 import { notFoundMiddleware } from "./middleware/not-found.middleware.js";
 import { errorMiddleware } from "./middleware/error.middleware.js";
 import healthRoutes from "./services/health.routes.js"; 
-import * as helmetModule from "helmet";
 
-const helmet = helmetModule.default;
 const app = express();
 
 app.use(
