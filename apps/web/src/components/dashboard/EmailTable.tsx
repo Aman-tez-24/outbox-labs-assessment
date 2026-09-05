@@ -57,9 +57,11 @@ export default function EmailTable({ emails, loading, type }: EmailTableProps) {
 
         const namePart = email.recipient.split("@")[0];
 
-        const displayName =
-          namePart.charAt(0).toUpperCase() + namePart.slice(1);
-
+        const displayName = namePart
+          .split(/[._-]/)
+          .filter(Boolean)
+          .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+          .join(" ");
         return (
           <Link
             href={`/dashboard/emails/${email.id}`}

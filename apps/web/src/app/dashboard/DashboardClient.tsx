@@ -1,21 +1,18 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
-
 import EmailTable from "@/components/dashboard/EmailTable";
-import EmailSearch from "@/components/dashboard/EmailSearch";
 import Pagination from "@/components/dashboard/Pagination";
 
 import { apiFetch } from "@/lib/api";
-
 import type { PaginatedEmailsResponse, User } from "@/lib/types";
 
 import "../globals.css";
+
 type View = "overview" | "scheduled" | "sent";
 
 export default function DashboardPage() {
@@ -40,54 +37,59 @@ export default function DashboardPage() {
   const [sent, setSent] = useState<PaginatedEmailsResponse | null>(null);
 
   const [scheduledPage, setScheduledPage] = useState(1);
-
   const [sentPage, setSentPage] = useState(1);
 
   const [search, setSearch] = useState("");
 
   const [loadingUser, setLoadingUser] = useState(true);
-
   const [loadingScheduled, setLoadingScheduled] = useState(true);
-
   const [loadingSent, setLoadingSent] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   const [error, setError] = useState<string | null>(null);
 
-  const loadEmails = useCallback(async () => {
-    try {
-      setError(null);
+  const loadEmails = useCallback(
+    async (isRefresh = false) => {
+      try {
+        setError(null);
 
-      setLoadingScheduled(true);
-      setLoadingSent(true);
+        if (isRefresh) {
+          setRefreshing(true);
+        } else {
+          setLoadingScheduled(true);
+          setLoadingSent(true);
+        }
 
-      const [scheduledResponse, sentResponse] = await Promise.all([
-        apiFetch<PaginatedEmailsResponse>("/api/emails/scheduled", {
-          params: {
-            page: scheduledPage,
-            limit: 20,
-            q: search || undefined,
-          },
-        }),
+        const [scheduledResponse, sentResponse] = await Promise.all([
+          apiFetch<PaginatedEmailsResponse>("/api/emails/scheduled", {
+            params: {
+              page: scheduledPage,
+              limit: 20,
+              q: search || undefined,
+            },
+          }),
 
-        apiFetch<PaginatedEmailsResponse>("/api/emails/sent", {
-          params: {
-            page: sentPage,
-            limit: 20,
-            q: search || undefined,
-          },
-        }),
-      ]);
+          apiFetch<PaginatedEmailsResponse>("/api/emails/sent", {
+            params: {
+              page: sentPage,
+              limit: 20,
+              q: search || undefined,
+            },
+          }),
+        ]);
 
-      setScheduled(scheduledResponse);
-
-      setSent(sentResponse);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to load emails.");
-    } finally {
-      setLoadingScheduled(false);
-      setLoadingSent(false);
-    }
-  }, [scheduledPage, sentPage, search]);
+        setScheduled(scheduledResponse);
+        setSent(sentResponse);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Unable to load emails.");
+      } finally {
+        setLoadingScheduled(false);
+        setLoadingSent(false);
+        setRefreshing(false);
+      }
+    },
+    [scheduledPage, sentPage, search],
+  );
 
   useEffect(() => {
     async function loadUser() {
@@ -121,6 +123,10 @@ export default function DashboardPage() {
     setSentPage(1);
   }
 
+  async function handleRefresh() {
+    await loadEmails(true);
+  }
+
   async function handleLogout() {
     try {
       await apiFetch("/api/auth/logout", {
@@ -144,9 +150,9 @@ export default function DashboardPage() {
 
   const sentCount = sent?.pagination.total ?? 0;
 
-  const showScheduled = activeView === "overview" || activeView === "scheduled";
+  const scheduledTotalPages = scheduled?.pagination.totalPages ?? 1;
 
-  const showSent = activeView === "overview" || activeView === "sent";
+  const sentTotalPages = sent?.pagination.totalPages ?? 1;
 
   return (
     <main className="dashboard-layout">
@@ -174,9 +180,10 @@ export default function DashboardPage() {
                 strokeLinecap="round"
                 strokeLinejoin="round"
               >
-                <circle cx="11" cy="11" r="8"></circle>
-                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
               </svg>
+
               <input
                 value={search}
                 onChange={(e) => handleSearch(e.target.value)}
@@ -186,7 +193,12 @@ export default function DashboardPage() {
             </div>
 
             <div className="toolbar-actions">
-              <button className="toolbar-btn">
+              <button
+                type="button"
+                className="toolbar-btn"
+                title="Filter"
+                aria-label="Filter emails"
+              >
                 <svg
                   width="16"
                   height="16"
@@ -197,10 +209,18 @@ export default function DashboardPage() {
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 >
-                  <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+                  <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
                 </svg>
               </button>
-              <button className="toolbar-btn">
+
+              <button
+                type="button"
+                className="toolbar-btn"
+                title="Refresh"
+                aria-label="Refresh emails"
+                onClick={handleRefresh}
+                disabled={refreshing}
+              >
                 <svg
                   width="16"
                   height="16"
@@ -210,10 +230,11 @@ export default function DashboardPage() {
                   strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
+                  className={refreshing ? "animate-spin" : ""}
                 >
-                  <path d="M21 2v6h-6"></path>
-                  <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
-                  <path d="M3 2v6h6"></path>
+                  <path d="M21 2v6h-6" />
+                  <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                  <path d="M3 2v6h6" />
                 </svg>
               </button>
             </div>
@@ -221,19 +242,41 @@ export default function DashboardPage() {
 
           <div className="email-list-container">
             {activeView === "scheduled" && (
-              <EmailTable
-                emails={scheduled?.emails ?? []}
-                loading={loadingScheduled}
-                type="scheduled"
-              />
+              <>
+                <EmailTable
+                  emails={scheduled?.emails ?? []}
+                  loading={loadingScheduled}
+                  type="scheduled"
+                />
+
+                {!loadingScheduled && scheduled && (
+                  <Pagination
+                    page={scheduledPage}
+                    totalPages={scheduledTotalPages}
+                    onPageChange={setScheduledPage}
+                  />
+                )}
+              </>
             )}
+
             {activeView === "sent" && (
-              <EmailTable
-                emails={sent?.emails ?? []}
-                loading={loadingSent}
-                type="sent"
-              />
+              <>
+                <EmailTable
+                  emails={sent?.emails ?? []}
+                  loading={loadingSent}
+                  type="sent"
+                />
+
+                {!loadingSent && sent && (
+                  <Pagination
+                    page={sentPage}
+                    totalPages={sentTotalPages}
+                    onPageChange={setSentPage}
+                  />
+                )}
+              </>
             )}
+
             {activeView === "overview" && (
               <>
                 <EmailTable
@@ -241,11 +284,28 @@ export default function DashboardPage() {
                   loading={loadingScheduled}
                   type="scheduled"
                 />
+
+                {!loadingScheduled && scheduled && (
+                  <Pagination
+                    page={scheduledPage}
+                    totalPages={scheduledTotalPages}
+                    onPageChange={setScheduledPage}
+                  />
+                )}
+
                 <EmailTable
                   emails={sent?.emails ?? []}
                   loading={loadingSent}
                   type="sent"
                 />
+
+                {!loadingSent && sent && (
+                  <Pagination
+                    page={sentPage}
+                    totalPages={sentTotalPages}
+                    onPageChange={setSentPage}
+                  />
+                )}
               </>
             )}
           </div>
