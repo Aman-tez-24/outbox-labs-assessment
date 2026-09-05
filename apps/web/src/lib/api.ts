@@ -40,21 +40,21 @@ export async function apiFetch<T>(
       },
     });
 
-    if (!response.ok) {
-      let message = "Something went wrong";
+   if (!response.ok) {
+  let message = "Something went wrong";
 
-      try {
-        const data = await response.json();
+  try {
+    const data = await response.json();
 
-        if (typeof data.message === "string") {
-          message = data.message;
-        }
-      } catch {
-        // Ignore invalid JSON response.
-      }
-
-      throw new Error(message);
+    if (typeof data.error === "string") {
+      message = data.error;
+    } else if (typeof data.message === "string") {
+      message = data.message;
     }
+  } catch {}
+
+  throw new Error(message);
+}
 
     return response.json();
    } catch (error) {
