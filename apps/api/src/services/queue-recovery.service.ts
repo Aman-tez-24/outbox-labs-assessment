@@ -20,7 +20,7 @@ export async function recoverScheduledEmails(): Promise<void> {
   let recovered = 0;
 
   for (const email of emails) {
-    const jobId = email.bullJobId ?? `email:${email.id}`;
+    const jobId = email.bullJobId ?? `email-${email.id}`;
 
     const existingJob = await emailQueue.getJob(jobId);
 

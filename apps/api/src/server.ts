@@ -8,7 +8,14 @@ async function startServer() {
   try {
     await ensureEmailIndex();
 
-    await recoverScheduledEmails();
+    try {
+      await recoverScheduledEmails();
+    } catch (error) {
+      console.error(
+        "Queue recovery failed. API will still start:",
+        error,
+      );
+    }
 
     app.listen(env.PORT, () => {
       console.log(
