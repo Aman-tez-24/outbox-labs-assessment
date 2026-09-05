@@ -93,10 +93,17 @@ export async function exchangeGoogleCode(
   );
 
   if (!response.ok) {
-    throw new Error(
-      `Google token exchange failed: ${response.status}`
-    );
-  }
+  const errorBody = await response.text();
+
+  console.error("[Google Token Exchange]", {
+    status: response.status,
+    body: errorBody,
+  });
+
+  throw new Error(
+    `Google token exchange failed: ${response.status} ${errorBody}`
+  );
+}
 
   return (await response.json()) as GoogleTokenResponse;
 }
