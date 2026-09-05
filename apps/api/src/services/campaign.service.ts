@@ -103,7 +103,7 @@ const campaign = await prisma.campaign.create({
 
   try {
     for (const email of emails) {
-      const jobId = `email:${email.id}`;
+      const jobId = `email-${email.id}`;
 
       await emailQueue.add(
         "send-email",
