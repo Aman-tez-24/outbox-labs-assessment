@@ -4,8 +4,11 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { ChevronDown, Clock, Send } from "lucide-react";
+import { useState } from "react";
+
 import type { User } from "@/lib/types";
 import "./dashboard.css";
+
 interface DashboardSidebarProps {
   user?: User;
   scheduledCount?: number;
@@ -20,22 +23,28 @@ export default function DashboardSidebar({
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
+  const [profileOpen, setProfileOpen] = useState(false);
+
   const currentView = searchParams.get("view");
 
   const isActive = (href: string) => {
     if (href === "/dashboard") {
       return pathname === "/dashboard" && !currentView;
     }
+
     if (href.includes("scheduled")) {
       return pathname === "/dashboard" && currentView === "scheduled";
     }
+
     if (href.includes("sent")) {
       return pathname === "/dashboard" && currentView === "sent";
     }
+
     return pathname === href;
   };
 
   const isScheduledActive = isActive("/dashboard?view=scheduled");
+
   const isSentActive = isActive("/dashboard?view=sent");
 
   return (
@@ -47,34 +56,74 @@ export default function DashboardSidebar({
 
       <div className="dashboard-sidebar-content">
         {/* User Profile */}
-        <div className="dashboard-profile">
-          <div className="dashboard-profile-left">
-            {user?.avatarUrl ? (
-              <Image
-                src={user.avatarUrl}
-                alt={user.name}
-                width={36}
-                height={36}
-                className="dashboard-profile-avatar"
-              />
-            ) : (
-              <div className="dashboard-profile-avatar dashboard-profile-fallback">
-                {user?.name?.charAt(0).toUpperCase() || "O"}
+        <div className="dashboard-profile-wrapper">
+          <button
+            type="button"
+            className="dashboard-profile"
+            onClick={() => setProfileOpen((previous) => !previous)}
+            aria-expanded={profileOpen}
+          >
+            <div className="dashboard-profile-left">
+              {user?.avatarUrl ? (
+                <Image
+                  src={user.avatarUrl}
+                  alt={user.name}
+                  width={36}
+                  height={36}
+                  className="dashboard-profile-avatar"
+                  unoptimized
+                />
+              ) : (
+                <div className="dashboard-profile-avatar dashboard-profile-fallback">
+                  {user?.name?.charAt(0).toUpperCase() || "O"}
+                </div>
+              )}
+
+              <div className="dashboard-profile-info">
+                <span className="dashboard-profile-name">{user?.name}</span>
+
+                <span className="dashboard-profile-email">{user?.email}</span>
               </div>
-            )}
-
-            <div className="dashboard-profile-info">
-              <span className="dashboard-profile-name">
-                {user?.name || "Oliver Brown"}
-              </span>
-
-              <span className="dashboard-profile-email">
-                {user?.email || "oliver.brown@domain.io"}
-              </span>
             </div>
-          </div>
 
-          <ChevronDown className="dashboard-profile-chevron" />
+            <ChevronDown
+              className={`dashboard-profile-chevron ${
+                profileOpen ? "dashboard-profile-chevron-open" : ""
+              }`}
+            />
+          </button>
+
+          {/* Dropdown */}
+          {profileOpen && (
+            <div className="dashboard-profile-dropdown">
+              <div className="dashboard-profile-dropdown-user">
+                <span>{user?.name}</span>
+                <small>{user?.email}</small>
+              </div>
+
+              <div className="dashboard-profile-dropdown-divider" />
+
+              <button
+                type="button"
+                className="dashboard-profile-dropdown-item"
+                onClick={() => {
+                  setProfileOpen(false);
+                }}
+              >
+                Account
+              </button>
+
+              <button
+                type="button"
+                className="dashboard-profile-dropdown-item"
+                onClick={() => {
+                  setProfileOpen(false);
+                }}
+              >
+                Settings
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Compose */}
