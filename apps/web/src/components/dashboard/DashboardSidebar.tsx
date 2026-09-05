@@ -138,7 +138,7 @@ export default function DashboardSidebar({
           <Link
             href="/dashboard?view=scheduled"
             className={`dashboard-nav-item ${
-              isScheduledActive ? "active" : ""
+              currentView === "scheduled" ? "active" : ""
             }`}
           >
             <span className="dashboard-nav-left">
@@ -153,7 +153,9 @@ export default function DashboardSidebar({
 
           <Link
             href="/dashboard?view=sent"
-            className={`dashboard-nav-item ${isSentActive ? "active" : ""}`}
+            className={`dashboard-nav-item ${
+              currentView === "sent" ? "active" : ""
+            }`}
           >
             <span className="dashboard-nav-left">
               <Send />
