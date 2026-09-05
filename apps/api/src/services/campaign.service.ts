@@ -102,35 +102,42 @@ const campaign = await prisma.campaign.create({
   );
 
   try {
-    for (const email of emails) {
-      const jobId = `email-${email.id}`;
+   for (const email of emails) {
+  const jobId = `email-${email.id}`;
 
-      await emailQueue.add(
-        "send-email",
-        {
-          emailId: email.id,
-        },
-        {
-          jobId,
-          delay: Math.max(
-            0,
-            email.scheduledAt.getTime() -
-              Date.now(),
-          ),
-        },
-      );
+  console.log(`[Campaign] Adding job ${jobId}`);
 
-      await prisma.email.update({
-        where: {
-          id: email.id,
-        },
-        data: {
-          bullJobId: jobId,
-        },
-      });
+  await emailQueue.add(
+    "send-email",
+    {
+      emailId: email.id,
+    },
+    {
+      jobId,
+      delay: Math.max(
+        0,
+        email.scheduledAt.getTime() - Date.now(),
+      ),
+    },
+  );
 
-      await indexEmailById(email.id);
-    }
+  console.log(`[Campaign] Job added ${jobId}`);
+
+  await prisma.email.update({
+    where: {
+      id: email.id,
+    },
+    data: {
+      bullJobId: jobId,
+    },
+  });
+
+  console.log(`[Campaign] Email updated ${email.id}`);
+
+  await indexEmailById(email.id);
+
+  console.log(`[Campaign] Email indexed ${email.id}`);
+}
  } catch (error) {
   console.error(
     `[Campaign Scheduling Failed] campaign=${campaign.id}`,
