@@ -1,5 +1,3 @@
 {
-  "includeFiles": [
-    "node_modules/@bull-board/ui/package.json"
-  ]
+  "version": 2
 }
