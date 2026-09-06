@@ -240,3 +240,102 @@ export async function getEmailById(
     ),
   };
 }
+export async function toggleEmailStar(
+  emailId: string,
+  userId: string,
+) {
+  const email = await prisma.email.findFirst({
+    where: {
+      id: emailId,
+      campaign: {
+        userId,
+      },
+    },
+    select: {
+      id: true,
+      starred: true,
+    },
+  });
+
+  if (!email) {
+    return null;
+  }
+
+  return prisma.email.update({
+    where: {
+      id: email.id,
+    },
+    data: {
+      starred: !email.starred,
+    },
+    select: {
+      id: true,
+      starred: true,
+    },
+  });
+}
+
+export async function archiveEmail(
+  emailId: string,
+  userId: string,
+) {
+  const email = await prisma.email.findFirst({
+    where: {
+      id: emailId,
+      campaign: {
+        userId,
+      },
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!email) {
+    return null;
+  }
+
+  return prisma.email.update({
+    where: {
+      id: email.id,
+    },
+    data: {
+      archived: true,
+    },
+    select: {
+      id: true,
+      archived: true,
+    },
+  });
+}
+
+export async function deleteEmail(
+  emailId: string,
+  userId: string,
+) {
+  const email = await prisma.email.findFirst({
+    where: {
+      id: emailId,
+      campaign: {
+        userId,
+      },
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!email) {
+    return null;
+  }
+
+  await prisma.email.delete({
+    where: {
+      id: email.id,
+    },
+  });
+
+  return {
+    id: email.id,
+  };
+}
