@@ -25,6 +25,8 @@ interface EmailDetails {
   status: string;
   attempts: number;
   errorMessage: string | null;
+  starred: boolean;
+  archived: boolean;
   createdAt: string;
 
   attachments: EmailAttachment[];
@@ -74,7 +76,7 @@ export default function EmailDetailsPage() {
   const [email, setEmail] = useState<EmailDetails | null>(null);
 
   const [loading, setLoading] = useState(true);
-
+  const [showSenderInfo, setShowSenderInfo] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [openingAttachment, setOpeningAttachment] = useState<string | null>(
     null,
@@ -105,6 +107,78 @@ export default function EmailDetailsPage() {
       setOpeningAttachment(null);
     }
   }
+
+  const [actionLoading, setActionLoading] = useState<
+    "star" | "archive" | "delete" | null
+  >(null);
+
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  async function handleStar() {
+    if (!email) return;
+
+    try {
+      setActionLoading("star");
+
+      const response = await apiFetch<{
+        email: {
+          id: string;
+          starred: boolean;
+        };
+      }>(`/api/emails/${email.id}/star`, {
+        method: "PATCH",
+      });
+
+      setEmail((current) =>
+        current
+          ? {
+              ...current,
+              starred: response.email.starred,
+            }
+          : current,
+      );
+    } catch (error) {
+      console.error("Failed to update star:", error);
+    } finally {
+      setActionLoading(null);
+    }
+  }
+
+  async function handleArchive() {
+    if (!email) return;
+
+    try {
+      setActionLoading("archive");
+
+      await apiFetch(`/api/emails/${email.id}/archive`, {
+        method: "PATCH",
+      });
+
+      window.location.href = "/dashboard";
+    } catch (error) {
+      console.error("Failed to archive email:", error);
+    } finally {
+      setActionLoading(null);
+    }
+  }
+
+  async function handleDelete() {
+    if (!email) return;
+
+    try {
+      setActionLoading("delete");
+
+      await apiFetch(`/api/emails/${email.id}`, {
+        method: "DELETE",
+      });
+
+      window.location.href = "/dashboard";
+    } catch (error) {
+      console.error("Failed to delete email:", error);
+    } finally {
+      setActionLoading(null);
+    }
+  }
+
   useEffect(() => {
     if (!id) {
       return;
@@ -187,12 +261,19 @@ export default function EmailDetailsPage() {
 
         <div className="email-details-header-right">
           <div className="email-details-actions">
-            <button type="button" aria-label="Star email">
+            <button
+              type="button"
+              aria-label={email.starred ? "Unstar email" : "Star email"}
+              title={email.starred ? "Unstar email" : "Star email"}
+              onClick={handleStar}
+              disabled={actionLoading !== null}
+              className={email.starred ? "is-starred" : ""}
+            >
               <svg
                 width="20"
                 height="20"
                 viewBox="0 0 24 24"
-                fill="none"
+                fill={email.starred ? "currentColor" : "none"}
                 stroke="currentColor"
                 strokeWidth="2"
                 strokeLinecap="round"
@@ -202,7 +283,13 @@ export default function EmailDetailsPage() {
               </svg>
             </button>
 
-            <button type="button" aria-label="Archive email">
+            <button
+              type="button"
+              aria-label="Archive email"
+              title="Archive email"
+              onClick={handleArchive}
+              disabled={actionLoading !== null}
+            >
               <svg
                 width="20"
                 height="20"
@@ -219,7 +306,13 @@ export default function EmailDetailsPage() {
               </svg>
             </button>
 
-            <button type="button" aria-label="Delete email">
+            <button
+              type="button"
+              aria-label="Delete email"
+              title="Delete email"
+              onClick={() => setShowDeleteConfirm(true)}
+              disabled={actionLoading !== null}
+            >
               <svg
                 width="20"
                 height="20"
@@ -236,11 +329,17 @@ export default function EmailDetailsPage() {
             </button>
           </div>
 
-          <div className="email-details-profile">
+          <button
+            type="button"
+            className="email-details-profile"
+            aria-label="View sender profile"
+            title="View sender"
+            onClick={() => setShowSenderInfo((value) => !value)}
+          >
             <div className="email-details-profile-fallback">
               {email.campaign.sender.name.charAt(0).toUpperCase()}
             </div>
-          </div>
+          </button>
         </div>
       </header>
 
@@ -365,6 +464,36 @@ export default function EmailDetailsPage() {
           </div>
         )}
       </section>
+      {showDeleteConfirm && (
+        <div className="email-delete-overlay">
+          <div className="email-delete-dialog">
+            <h2>Delete email?</h2>
+
+            <p>
+              This email and its attachments will be permanently deleted. This
+              action cannot be undone.
+            </p>
+
+            <div className="email-delete-actions">
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={actionLoading !== null}
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={actionLoading !== null}
+              >
+                {actionLoading === "delete" ? "Deleting..." : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
