@@ -175,7 +175,7 @@ export async function getEmailById(
   emailId: string,
   userId: string,
 ) {
-  return prisma.email.findFirst({
+  const email = await prisma.email.findFirst({
     where: {
       id: emailId,
       campaign: {
@@ -195,6 +195,15 @@ export async function getEmailById(
       createdAt: true,
       updatedAt: true,
 
+      attachments: {
+        select: {
+          id: true,
+          filename: true,
+          contentType: true,
+          size: true,
+        },
+      },
+
       campaign: {
         select: {
           id: true,
@@ -212,4 +221,19 @@ export async function getEmailById(
       },
     },
   });
+
+  if (!email) {
+    return null;
+  }
+
+  return {
+    ...email,
+
+    attachments: email.attachments.map(
+      (attachment) => ({
+        ...attachment,
+        url: `/api/emails/${email.id}/attachments/${attachment.id}`,
+      }),
+    ),
+  };
 }

@@ -443,17 +443,23 @@ export default function ComposePage() {
     try {
       setSubmitting(true);
 
+      const formData = new FormData();
+
+      formData.append("senderId", senderId);
+      formData.append("subject", subject.trim());
+      formData.append("body", body.trim());
+      formData.append("startTime", start.toISOString());
+      formData.append("delayMs", String(delayMs));
+      formData.append("hourlyLimit", String(limit));
+
+      formData.append("leads", JSON.stringify(leads));
+
+      for (const file of attachments) {
+        formData.append("attachments", file, file.name);
+      }
       const response = await apiFetch<CampaignResponse>("/api/campaigns", {
         method: "POST",
-        body: JSON.stringify({
-          senderId,
-          subject: subject.trim(),
-          body: body.trim(),
-          startTime: start.toISOString(),
-          delayMs,
-          hourlyLimit: limit,
-          leads,
-        }),
+        body: formData,
       });
 
       setSuccess(

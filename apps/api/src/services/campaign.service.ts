@@ -2,15 +2,18 @@ import { prisma } from "../config/prisma.js";
 import { emailQueue } from "../queues/email.queue.js";
 import { indexEmailById } from "./email-indexing.service.js";
 import { normalizeLeads } from "./lead-parser.service.js";
+
 import type {
   CreateCampaignInput,
   CampaignResponse,
 } from "../types/campaign.types.js";
+
 import crypto from "node:crypto";
 
 export async function createCampaign(
   userId: string,
   input: CreateCampaignInput,
+  files: Express.Multer.File[],
 ): Promise<CampaignResponse> {
   const subject = input.subject.trim();
   const body = input.body.trim();
@@ -61,21 +64,21 @@ export async function createCampaign(
     throw new Error("Sender not found");
   }
 
- const idempotencyKey = crypto.randomUUID();
+  const idempotencyKey = crypto.randomUUID();
 
-const campaign = await prisma.campaign.create({
-  data: {
-    userId,
-    senderId: sender.id,
-    subject,
-    body,
-    startTime,
-    delayMs: input.delayMs,
-    hourlyLimit: input.hourlyLimit,
-    totalEmails: leads.length,
-    idempotencyKey,
-  },
-});
+  const campaign = await prisma.campaign.create({
+    data: {
+      userId,
+      senderId: sender.id,
+      subject,
+      body,
+      startTime,
+      delayMs: input.delayMs,
+      hourlyLimit: input.hourlyLimit,
+      totalEmails: leads.length,
+      idempotencyKey,
+    },
+  });
 
   const emails = await prisma.$transaction(
     leads.map((recipient, index) => {
@@ -96,67 +99,99 @@ const campaign = await prisma.campaign.create({
           scheduledAt,
 
           status: "scheduled",
+
+          attachments: files.length
+            ? {
+                create: files.map((file) => ({
+                  filename: file.originalname,
+                  contentType: file.mimetype || null,
+                  size: file.size,
+                  data: new Uint8Array(file.buffer),
+                })),
+              }
+            : undefined,
         },
       });
     }),
   );
 
   try {
-   for (const email of emails) {
-  const jobId = `email-${email.id}`;
+    for (const email of emails) {
+      const jobId = `email-${email.id}`;
 
-  console.log(`[Campaign] Adding job ${jobId}`);
+      console.log(
+        `[Campaign] Adding job ${jobId}`,
+      );
 
-  await emailQueue.add(
-    "send-email",
-    {
-      emailId: email.id,
-    },
-    {
-      jobId,
-      delay: Math.max(
-        0,
-        email.scheduledAt.getTime() - Date.now(),
-      ),
-    },
-  );
+      await emailQueue.add(
+        "send-email",
+        {
+          emailId: email.id,
+        },
+        {
+          jobId,
+          delay: Math.max(
+            0,
+            email.scheduledAt.getTime() -
+              Date.now(),
+          ),
+        },
+      );
 
-  console.log(`[Campaign] Job added ${jobId}`);
+      console.log(
+        `[Campaign] Job added ${jobId}`,
+      );
 
-  await prisma.email.update({
-    where: {
-      id: email.id,
-    },
-    data: {
-      bullJobId: jobId,
-    },
-  });
+      await prisma.email.update({
+        where: {
+          id: email.id,
+        },
+        data: {
+          bullJobId: jobId,
+        },
+      });
 
-  console.log(`[Campaign] Email updated ${email.id}`);
+      console.log(
+        `[Campaign] Email updated ${email.id}`,
+      );
 
-  await indexEmailById(email.id);
+      await indexEmailById(email.id);
 
-  console.log(`[Campaign] Email indexed ${email.id}`);
-}
- } catch (error) {
-  console.error(
-    `[Campaign Scheduling Failed] campaign=${campaign.id}`,
-    error,
-  );
+      console.log(
+        `[Campaign] Email indexed ${email.id}`,
+      );
+    }
+  } catch (error) {
+    console.error(
+      `[Campaign Scheduling Failed] campaign=${campaign.id}`,
+      error,
+    );
 
-  if (error instanceof Error) {
-    console.error("Error name:", error.name);
-    console.error("Error message:", error.message);
-    console.error("Error stack:", error.stack);
+    if (error instanceof Error) {
+      console.error(
+        "Error name:",
+        error.name,
+      );
+
+      console.error(
+        "Error message:",
+        error.message,
+      );
+
+      console.error(
+        "Error stack:",
+        error.stack,
+      );
+    }
+
+    throw error;
   }
-
-  throw error;
-}
 
   return {
     campaignId: campaign.id,
     totalEmails: emails.length,
-    startTime: campaign.startTime.toISOString(),
+    startTime:
+      campaign.startTime.toISOString(),
     delayMs: campaign.delayMs,
     hourlyLimit: campaign.hourlyLimit,
   };

@@ -29,6 +29,7 @@
     "ioredis": "^6.0.0",
     "jose": "^6.2.11",
     "morgan": "^1.10.0",
+    "multer": "^2.3.0",
     "nodemailer": "^10.0.0",
     "zod": "^4.5.4"
   },
@@ -38,6 +39,7 @@
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.3",
     "@types/morgan": "^1.9.10",
+    "@types/multer": "^2.2.0",
     "@types/node": "^24.0.0",
     "@types/nodemailer": "^8.0.1",
     "dotenv-cli": "^11.0.0",

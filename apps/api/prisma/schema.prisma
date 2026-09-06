@@ -3,112 +3,87 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
-enum EmailStatus {
-  scheduled
-  processing
-  sent
-  failed
-}
-
 model User {
-  id        String   @id @default(uuid())
-  googleId  String   @unique
-  name      String
-  email     String   @unique
-  avatarUrl String?
-
-  senders         Sender[]
+  id              String           @id @default(uuid())
+  googleId        String           @unique
+  name            String
+  email           String           @unique
+  avatarUrl       String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
   campaigns       Campaign[]
+  senders         Sender[]
   slackConnection SlackConnection?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 
   @@map("users")
 }
 
 model Sender {
-  id              String @id @default(uuid())
-  userId          String
-  name            String
-  email           String
-  etherealUser    String
+  id               String     @id @default(uuid())
+  userId           String
+  name             String
+  email            String
+  etherealUser     String
   etherealPassword String
-
-  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  campaigns Campaign[]
-  emails    Email[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+  campaigns        Campaign[]
+  emails           Email[]
+  user             User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, email])
   @@index([userId])
-
   @@map("senders")
 }
 
 model Campaign {
-  id          String   @id @default(uuid())
-  userId      String
-  senderId    String
-
-  subject     String
-  body        String
-
-  startTime   DateTime
-  delayMs     Int
-  hourlyLimit Int
-
-  totalEmails Int
-
+  id             String   @id @default(uuid())
+  userId         String
+  senderId       String
+  subject        String
+  body           String
+  startTime      DateTime
+  delayMs        Int
+  hourlyLimit    Int
+  totalEmails    Int
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
   idempotencyKey String
-
-  user        User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  sender      Sender @relation(fields: [senderId], references: [id])
-  emails      Email[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  sender         Sender   @relation(fields: [senderId], references: [id])
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  emails         Email[]
 
   @@unique([userId, idempotencyKey])
   @@index([userId])
   @@index([senderId])
   @@index([createdAt])
-
   @@map("campaigns")
 }
 
 model Email {
-  id           String      @id @default(uuid())
-  campaignId   String
-  senderId     String
-
-  recipient    String
-  subject      String
-  body         String
-
-  scheduledAt  DateTime
-  sentAt       DateTime?
-
-  status       EmailStatus @default(scheduled)
-
-  bullJobId    String?     @unique
-
-  attempts     Int         @default(0)
+  id                  String            @id @default(uuid())
+  campaignId          String
+  senderId            String
+  recipient           String
+  subject             String
+  body                String
+  scheduledAt         DateTime
+  sentAt              DateTime?
+  status              EmailStatus       @default(scheduled)
+  bullJobId           String?           @unique
+  attempts            Int               @default(0)
+  errorMessage        String?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
   processingStartedAt DateTime?
-  errorMessage String?
-
-  campaign     Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  sender       Sender   @relation(fields: [senderId], references: [id], onDelete: Restrict)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  attachments         EmailAttachment[]
+  campaign            Campaign          @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  sender              Sender            @relation(fields: [senderId], references: [id])
 
   @@index([campaignId])
   @@index([senderId])
@@ -117,25 +92,41 @@ model Email {
   @@index([status])
   @@index([status, scheduledAt])
   @@index([status, processingStartedAt])
-
   @@map("emails")
 }
 
+model EmailAttachment {
+  id          String   @id @default(uuid())
+  emailId     String
+  filename    String
+  contentType String?
+  size        Int
+  data        Bytes
+  createdAt   DateTime @default(now())
+  email       Email    @relation(fields: [emailId], references: [id], onDelete: Cascade)
+
+  @@index([emailId])
+  @@map("email_attachments")
+}
+
 model SlackConnection {
-  id           String @id @default(uuid())
-  userId       String @unique
-
-  teamId       String
-  teamName     String
-  accessToken  String
-
-  channelId    String?
-  channelName  String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String   @id @default(uuid())
+  userId      String   @unique
+  teamId      String
+  teamName    String
+  accessToken String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  channelId   String?
+  channelName String?
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("slack_connections")
+}
+
+enum EmailStatus {
+  scheduled
+  processing
+  sent
+  failed
 }

@@ -31,33 +31,39 @@ export async function apiFetch<T>(
   console.log("[apiFetch] URL:", url);
 
   try {
+    const isFormData = fetchOptions.body instanceof FormData;
+
     const response = await fetch(url, {
       ...fetchOptions,
       credentials: "include",
       headers: {
-        "Content-Type": "application/json",
+        ...(isFormData
+          ? {}
+          : {
+              "Content-Type": "application/json",
+            }),
         ...fetchOptions.headers,
       },
     });
 
-   if (!response.ok) {
-  let message = "Something went wrong";
+    if (!response.ok) {
+      let message = "Something went wrong";
 
-  try {
-    const data = await response.json();
+      try {
+        const data = await response.json();
 
-    if (typeof data.error === "string") {
-      message = data.error;
-    } else if (typeof data.message === "string") {
-      message = data.message;
+        if (typeof data.error === "string") {
+          message = data.error;
+        } else if (typeof data.message === "string") {
+          message = data.message;
+        }
+      } catch {}
+
+      throw new Error(message);
     }
-  } catch {}
-
-  throw new Error(message);
-}
 
     return response.json();
-   } catch (error) {
+  } catch (error) {
     console.error("[apiFetch] Request failed");
     console.error("[apiFetch] URL:", url);
     console.error("[apiFetch] Error:", error);

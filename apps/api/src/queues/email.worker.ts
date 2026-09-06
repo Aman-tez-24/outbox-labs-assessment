@@ -56,15 +56,15 @@ async function processEmail(
     },
 
     include: {
-      sender: true,
-
-      campaign: {
-        select: {
-          userId: true,
-          hourlyLimit: true,
-        },
-      },
+  sender: true,
+  attachments: true,
+  campaign: {
+    select: {
+      userId: true,
+      hourlyLimit: true,
     },
+  },
+},
   });
 
   if (!email) {
@@ -170,25 +170,23 @@ async function processEmail(
    */
   try {
     await sendEtherealEmail({
-      emailId: email.id,
+  emailId: email.id,
+  from: {
+    name: email.sender.name,
+    email: email.sender.email,
+  },
+  smtpUser: email.sender.etherealUser,
+  smtpPassword: email.sender.etherealPassword,
+  to: email.recipient,
+  subject: email.subject,
+  body: email.body,
 
-      from: {
-        name: email.sender.name,
-        email: email.sender.email,
-      },
-
-      smtpUser:
-        email.sender.etherealUser,
-
-      smtpPassword:
-        email.sender.etherealPassword,
-
-      to: email.recipient,
-
-      subject: email.subject,
-
-      body: email.body,
-    });
+  attachments: email.attachments.map((attachment) => ({
+    filename: attachment.filename,
+    content: Buffer.from(attachment.data),
+    contentType: attachment.contentType ?? undefined,
+  })),
+});
 
     await markEmailSent(
       email.id,
