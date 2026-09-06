@@ -1,4 +1,3 @@
-
 import { prisma } from "../config/prisma.js";
 import type {
   EmailListItem,
@@ -12,12 +11,10 @@ interface ListEmailsOptions {
   limit: number;
   search?: string;
 }
-
 const API_URL =
   process.env.API_PUBLIC_URL ??
   process.env.NEXT_PUBLIC_API_URL ??
   "";
-
 function mapEmail(email: {
   id: string;
   recipient: string;
@@ -43,52 +40,19 @@ export async function listScheduledEmails(
 ): Promise<PaginatedEmailsResponse> {
   const { userId, page, limit, search } = options;
 
-  const now = new Date();
-
-  // Move emails whose scheduled time has arrived to "sent".
-  await prisma.email.updateMany({
-    where: {
-      campaign: {
-        userId,
-      },
-      archived: false,
-      status: EmailStatus.scheduled,
-      scheduledAt: {
-        lte: now,
-      },
-    },
-    data: {
-      status: EmailStatus.sent,
-      sentAt: now,
-    },
-  });
-
   const skip = (page - 1) * limit;
 
   const where = {
-    campaign: {
-      userId,
-    },
-    archived: false,
-    status: {
-      in: [EmailStatus.scheduled, EmailStatus.processing],
-    },
+  campaign: {
+    userId,
+  },
+  archived: false,
+  status: {
+    in: [EmailStatus.scheduled, EmailStatus.processing],
+  },
     ...(search
       ? {
-          OR: [
-            {
-              recipient: {
-                contains: search,
-                mode: "insensitive" as const,
-              },
-            },
-            {
-              subject: {
-                contains: search,
-                mode: "insensitive" as const,
-              },
-            },
-          ],
+          OR: [ { recipient: { contains: search, mode: "insensitive" as const, }, }, { subject: { contains: search, mode: "insensitive" as const, }, }, ],
         }
       : {}),
   };
@@ -134,11 +98,13 @@ export async function listSentEmails(
   const skip = (page - 1) * limit;
 
   const where = {
-    campaign: {
-      userId,
-    },
-    archived: false,
-    status: EmailStatus.sent,
+  campaign: {
+    userId,
+  },
+  archived: false,
+  status: {
+    in: [EmailStatus.sent, EmailStatus.failed],
+  },
     ...(search
       ? {
           OR: [
@@ -209,19 +175,19 @@ export async function getEmailById(
       },
     },
     select: {
-      id: true,
-      recipient: true,
-      subject: true,
-      body: true,
-      scheduledAt: true,
-      sentAt: true,
-      status: true,
-      attempts: true,
-      errorMessage: true,
-      starred: true,
-      archived: true,
-      createdAt: true,
-      updatedAt: true,
+  id: true,
+  recipient: true,
+  subject: true,
+  body: true,
+  scheduledAt: true,
+  sentAt: true,
+  status: true,
+  attempts: true,
+  errorMessage: true,
+  starred: true,
+  archived: true,
+  createdAt: true,
+  updatedAt: true,
 
       attachments: {
         select: {
@@ -260,12 +226,11 @@ export async function getEmailById(
     attachments: email.attachments.map(
       (attachment) => ({
         ...attachment,
-        url: `${API_URL}/api/emails/${email.id}/attachments/${attachment.id}`,
+       url: `${API_URL}/api/emails/${email.id}/attachments/${attachment.id}`,
       }),
     ),
   };
 }
-
 export async function toggleEmailStar(
   emailId: string,
   userId: string,
