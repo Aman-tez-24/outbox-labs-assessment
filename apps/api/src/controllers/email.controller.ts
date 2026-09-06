@@ -1,10 +1,13 @@
 import type { Request, Response } from "express";
+import { prisma } from "../config/prisma.js";
 import {
   getEmailById,
   listScheduledEmails,
   listSentEmails,
+  toggleEmailStar,
+  archiveEmail,
+  deleteEmail,
 } from "../services/email.service.js";
-import { prisma } from "../config/prisma.js";
 function parsePagination(req: Request) {
   const page = Math.max(
     1,
@@ -175,4 +178,106 @@ export async function getEmailAttachment(
   );
 
   return res.send(Buffer.from(attachment.data));
+}
+export async function toggleStar(
+  req: Request,
+  res: Response,
+) {
+  if (!req.user) {
+    return res.status(401).json({
+      message: "Unauthorized",
+    });
+  }
+
+  const emailId = String(req.params.id);
+
+  if (!emailId) {
+    return res.status(400).json({
+      message: "Email ID is required",
+    });
+  }
+
+  const email = await toggleEmailStar(
+    emailId,
+    req.user.id,
+  );
+
+  if (!email) {
+    return res.status(404).json({
+      message: "Email not found",
+    });
+  }
+
+  return res.json({
+    email,
+  });
+}
+
+export async function archiveEmailController(
+  req: Request,
+  res: Response,
+) {
+  if (!req.user) {
+    return res.status(401).json({
+      message: "Unauthorized",
+    });
+  }
+
+  const emailId = String(req.params.id);
+
+  if (!emailId) {
+    return res.status(400).json({
+      message: "Email ID is required",
+    });
+  }
+
+  const email = await archiveEmail(
+    emailId,
+    req.user.id,
+  );
+
+  if (!email) {
+    return res.status(404).json({
+      message: "Email not found",
+    });
+  }
+
+  return res.json({
+    email,
+  });
+}
+
+export async function deleteEmailController(
+  req: Request,
+  res: Response,
+) {
+  if (!req.user) {
+    return res.status(401).json({
+      message: "Unauthorized",
+    });
+  }
+
+  const emailId = String(req.params.id);
+
+  if (!emailId) {
+    return res.status(400).json({
+      message: "Email ID is required",
+    });
+  }
+
+  const email = await deleteEmail(
+    emailId,
+    req.user.id,
+  );
+
+  if (!email) {
+    return res.status(404).json({
+      message: "Email not found",
+    });
+  }
+
+  return res.json({
+    message: "Email deleted successfully",
+    id: email.id,
+  });
 }

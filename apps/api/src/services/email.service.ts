@@ -43,12 +43,13 @@ export async function listScheduledEmails(
   const skip = (page - 1) * limit;
 
   const where = {
-    campaign: {
-      userId,
-    },
-    status: {
-  in: [EmailStatus.scheduled, EmailStatus.processing],
-},
+  campaign: {
+    userId,
+  },
+  archived: false,
+  status: {
+    in: [EmailStatus.scheduled, EmailStatus.processing],
+  },
     ...(search
       ? {
           OR: [
@@ -110,12 +111,13 @@ export async function listSentEmails(
   const skip = (page - 1) * limit;
 
   const where = {
-    campaign: {
-      userId,
-    },
-    status: {
-  in: [EmailStatus.sent, EmailStatus.failed],
-},
+  campaign: {
+    userId,
+  },
+  archived: false,
+  status: {
+    in: [EmailStatus.sent, EmailStatus.failed],
+  },
     ...(search
       ? {
           OR: [
@@ -186,17 +188,19 @@ export async function getEmailById(
       },
     },
     select: {
-      id: true,
-      recipient: true,
-      subject: true,
-      body: true,
-      scheduledAt: true,
-      sentAt: true,
-      status: true,
-      attempts: true,
-      errorMessage: true,
-      createdAt: true,
-      updatedAt: true,
+  id: true,
+  recipient: true,
+  subject: true,
+  body: true,
+  scheduledAt: true,
+  sentAt: true,
+  status: true,
+  attempts: true,
+  errorMessage: true,
+  starred: true,
+  archived: true,
+  createdAt: true,
+  updatedAt: true,
 
       attachments: {
         select: {
