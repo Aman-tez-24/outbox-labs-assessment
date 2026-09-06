@@ -88,7 +88,10 @@ export default function EmailDetailsPage() {
           email: EmailDetails;
         }>(`/api/emails/${id}`);
 
-        setEmail(response.email);
+        setEmail({
+          ...response.email,
+          attachments: response.email.attachments ?? [],
+        });
       } catch (err) {
         setError(err instanceof Error ? err.message : "Unable to load email.");
       } finally {
