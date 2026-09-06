@@ -261,65 +261,80 @@ export default function EmailDetailsPage() {
 
         <div className="email-details-header-right">
           <div className="email-details-actions">
+            {/* Star */}
             <button
               type="button"
+              className={`email-action-button email-star-button ${
+                email.starred ? "is-starred" : ""
+              }`}
               aria-label={email.starred ? "Unstar email" : "Star email"}
               title={email.starred ? "Unstar email" : "Star email"}
               onClick={handleStar}
               disabled={actionLoading !== null}
-              className={email.starred ? "is-starred" : ""}
             >
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill={email.starred ? "currentColor" : "none"}
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-              </svg>
+              {actionLoading === "star" ? (
+                <span className="email-action-spinner" />
+              ) : (
+                <svg
+                  width="19"
+                  height="19"
+                  viewBox="0 0 24 24"
+                  fill={email.starred ? "currentColor" : "none"}
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                </svg>
+              )}
             </button>
 
+            {/* Archive */}
             <button
               type="button"
+              className="email-action-button"
               aria-label="Archive email"
               title="Archive email"
               onClick={handleArchive}
               disabled={actionLoading !== null}
             >
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <polyline points="21 8 21 21 3 21 3 8" />
-                <rect x="1" y="3" width="22" height="5" />
-                <line x1="10" y1="12" x2="14" y2="12" />
-              </svg>
+              {actionLoading === "archive" ? (
+                <span className="email-action-spinner" />
+              ) : (
+                <svg
+                  width="19"
+                  height="19"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <polyline points="21 8 21 21 3 21 3 8" />
+                  <rect x="1" y="3" width="22" height="5" rx="1" />
+                  <line x1="10" y1="12" x2="14" y2="12" />
+                </svg>
+              )}
             </button>
 
+            {/* Delete */}
             <button
               type="button"
+              className="email-action-button email-delete-button"
               aria-label="Delete email"
               title="Delete email"
               onClick={() => setShowDeleteConfirm(true)}
               disabled={actionLoading !== null}
             >
               <svg
-                width="20"
-                height="20"
+                width="19"
+                height="19"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
-                strokeWidth="2"
+                strokeWidth="1.8"
                 strokeLinecap="round"
                 strokeLinejoin="round"
               >
@@ -329,17 +344,56 @@ export default function EmailDetailsPage() {
             </button>
           </div>
 
-          <button
-            type="button"
-            className="email-details-profile"
-            aria-label="View sender profile"
-            title="View sender"
-            onClick={() => setShowSenderInfo((value) => !value)}
-          >
-            <div className="email-details-profile-fallback">
-              {email.campaign.sender.name.charAt(0).toUpperCase()}
-            </div>
-          </button>
+          {/* Divider */}
+          <div className="email-details-action-divider" />
+
+          {/* Profile */}
+          <div className="email-profile-wrapper">
+            <button
+              type="button"
+              className={`email-details-profile ${
+                showSenderInfo ? "is-active" : ""
+              }`}
+              aria-label="View sender profile"
+              title="View sender"
+              onClick={() => setShowSenderInfo((value) => !value)}
+            >
+              <div className="email-details-profile-fallback">
+                {email.campaign.sender.name.charAt(0).toUpperCase()}
+              </div>
+
+              <span className="email-profile-status" />
+            </button>
+
+            {showSenderInfo && (
+              <div className="email-sender-popover">
+                <div className="email-sender-popover-header">
+                  <div className="email-sender-popover-avatar">
+                    {email.campaign.sender.name.charAt(0).toUpperCase()}
+                  </div>
+
+                  <div>
+                    <strong>{email.campaign.sender.name}</strong>
+                    <span>{email.campaign.sender.email}</span>
+                  </div>
+                </div>
+
+                <div className="email-sender-popover-divider" />
+
+                <div className="email-sender-popover-row">
+                  <span>Recipient</span>
+                  <strong>{email.recipient}</strong>
+                </div>
+
+                <div className="email-sender-popover-row">
+                  <span>Status</span>
+                  <strong className={`popover-status popover-${email.status}`}>
+                    {email.status}
+                  </strong>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
