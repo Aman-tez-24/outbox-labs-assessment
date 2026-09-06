@@ -693,13 +693,6 @@ export default function ComposePage() {
               </div>
             </div>
 
-            {leads.length > 0 && (
-              <div className="compose-recipient-count">
-                {leads.length} recipient
-                {leads.length === 1 ? "" : "s"} added
-              </div>
-            )}
-
             {/* SUBJECT */}
             <div className="compose-field">
               <span className="compose-field-label">Subject</span>

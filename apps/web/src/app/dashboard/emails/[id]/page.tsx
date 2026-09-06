@@ -7,6 +7,14 @@ import { useParams } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import "./email-details.css";
 
+interface EmailAttachment {
+  id: string;
+  filename: string;
+  contentType: string | null;
+  size: number;
+  url: string;
+}
+
 interface EmailDetails {
   id: string;
   recipient: string;
@@ -18,6 +26,9 @@ interface EmailDetails {
   attempts: number;
   errorMessage: string | null;
   createdAt: string;
+
+  attachments: EmailAttachment[];
+
   campaign: {
     id: string;
     startTime: string;
@@ -40,7 +51,21 @@ function formatDate(value: string | null) {
     timeStyle: "short",
   }).format(new Date(value));
 }
+function formatFileSize(bytes: number) {
+  if (bytes < 1024) {
+    return `${bytes} B`;
+  }
 
+  if (bytes < 1024 * 1024) {
+    return `${(bytes / 1024).toFixed(1)} KB`;
+  }
+
+  if (bytes < 1024 * 1024 * 1024) {
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
+}
 export default function EmailDetailsPage() {
   const params = useParams();
 
@@ -242,38 +267,44 @@ export default function EmailDetailsPage() {
         </div>
 
         {/* Body */}
-        <div className="email-details-body">{email.body}</div>
+        <div
+          className="email-details-body"
+          dangerouslySetInnerHTML={{ __html: email.body }}
+        />
 
         {/* Attachments */}
-        <div className="email-details-attachments">
-          <div className="email-attachment">
-            <div className="email-attachment-preview">
-              <img
-                src="https://images.unsplash.com/photo-1595435742656-5272d0b3fa82?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80"
-                alt="Tennis"
-              />
-            </div>
+        {email.attachments.length > 0 && (
+          <div className="email-details-attachments">
+            {email.attachments.map((attachment) => {
+              const isImage = attachment.contentType?.startsWith("image/");
 
-            <div className="email-attachment-info">
-              <p>Tennis_Coach_Profile.png</p>
-              <span>1.2 MB</span>
-            </div>
+              return (
+                <a
+                  key={attachment.id}
+                  href={attachment.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="email-attachment"
+                >
+                  <div className="email-attachment-preview">
+                    {isImage ? (
+                      <img src={attachment.url} alt={attachment.filename} />
+                    ) : (
+                      <div className="email-attachment-file">
+                        <span>FILE</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="email-attachment-info">
+                    <p>{attachment.filename}</p>
+                    <span>{formatFileSize(attachment.size)}</span>
+                  </div>
+                </a>
+              );
+            })}
           </div>
-
-          <div className="email-attachment">
-            <div className="email-attachment-preview">
-              <img
-                src="https://images.unsplash.com/photo-1595435742656-5272d0b3fa82?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80"
-                alt="Tennis"
-              />
-            </div>
-
-            <div className="email-attachment-info">
-              <p>Tennis_Coach_Profile2.png</p>
-              <span>1.2 MB</span>
-            </div>
-          </div>
-        </div>
+        )}
 
         {/* Delivery Error */}
         {email.errorMessage && (
