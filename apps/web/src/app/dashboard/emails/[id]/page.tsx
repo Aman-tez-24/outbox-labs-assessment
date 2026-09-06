@@ -14,7 +14,13 @@ interface EmailAttachment {
   size: number;
   url: string;
 }
-
+interface CurrentUser {
+  id: string;
+  name: string | null;
+  email: string;
+  photoURL?: string | null;
+  picture?: string | null;
+}
 interface EmailDetails {
   id: string;
   recipient: string;
@@ -74,6 +80,8 @@ export default function EmailDetailsPage() {
   const id = typeof params.id === "string" ? params.id : "";
 
   const [email, setEmail] = useState<EmailDetails | null>(null);
+
+  const [user, setUser] = useState<CurrentUser | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [showSenderInfo, setShowSenderInfo] = useState(false);
@@ -203,7 +211,17 @@ export default function EmailDetailsPage() {
 
     load();
   }, [id]);
-
+  useEffect(() => {
+    async function loadCurrentUser() {
+      try {
+        const response = await apiFetch<{ user: CurrentUser }>("/api/user/me");
+        setUser(response.user);
+      } catch (error) {
+        console.error("Failed to load current user:", error);
+      }
+    }
+    loadCurrentUser();
+  }, []);
   if (loading) {
     return (
       <main className="email-details-loading">
@@ -358,26 +376,54 @@ export default function EmailDetailsPage() {
               title="View sender"
               onClick={() => setShowSenderInfo((value) => !value)}
             >
-              <div className="email-details-profile-fallback">
-                {email.campaign.sender.name.charAt(0).toUpperCase()}
-              </div>
-
+              {user?.photoURL || user?.picture ? (
+                <img
+                  src={user.photoURL ?? user.picture ?? ""}
+                  alt={user.name ?? "Profile"}
+                  className="email-details-profile-image"
+                />
+              ) : (
+                <div className="email-details-profile-fallback">
+                  {" "}
+                  {(user?.name ?? email.campaign.sender.name)
+                    .charAt(0)
+                    .toUpperCase()}{" "}
+                </div>
+              )}{" "}
+              <span className="email-profile-status" />
               <span className="email-profile-status" />
             </button>
 
             {showSenderInfo && (
               <div className="email-sender-popover">
                 <div className="email-sender-popover-header">
-                  <div className="email-sender-popover-avatar">
-                    {email.campaign.sender.name.charAt(0).toUpperCase()}
-                  </div>
-
+                  {" "}
+                  {user?.photoURL || user?.picture ? (
+                    <img
+                      src={user.photoURL ?? user.picture ?? ""}
+                      alt={user.name ?? "Profile"}
+                      className="email-sender-popover-image"
+                    />
+                  ) : (
+                    <div className="email-sender-popover-avatar">
+                      {" "}
+                      {(user?.name ?? email.campaign.sender.name)
+                        .charAt(0)
+                        .toUpperCase()}{" "}
+                    </div>
+                  )}{" "}
                   <div>
-                    <strong>{email.campaign.sender.name}</strong>
-                    <span>{email.campaign.sender.email}</span>
-                  </div>
+                    {" "}
+                    <strong>
+                      {" "}
+                      {user?.name ?? email.campaign.sender.name}{" "}
+                    </strong>{" "}
+                    <span>
+                      {" "}
+                      {user?.email ?? email.campaign.sender.email}{" "}
+                    </span>{" "}
+                  </div>{" "}
                 </div>
-
                 <div className="email-sender-popover-divider" />
 
                 <div className="email-sender-popover-row">
