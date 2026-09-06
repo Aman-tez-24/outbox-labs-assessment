@@ -11,7 +11,10 @@ interface ListEmailsOptions {
   limit: number;
   search?: string;
 }
-
+const API_URL =
+  process.env.API_PUBLIC_URL ??
+  process.env.NEXT_PUBLIC_API_URL ??
+  "";
 function mapEmail(email: {
   id: string;
   recipient: string;
@@ -232,7 +235,7 @@ export async function getEmailById(
     attachments: email.attachments.map(
       (attachment) => ({
         ...attachment,
-        url: `/api/emails/${email.id}/attachments/${attachment.id}`,
+       url: `${API_URL}/api/emails/${email.id}/attachments/${attachment.id}`,
       }),
     ),
   };

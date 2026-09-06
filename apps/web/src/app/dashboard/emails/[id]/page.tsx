@@ -76,7 +76,35 @@ export default function EmailDetailsPage() {
   const [loading, setLoading] = useState(true);
 
   const [error, setError] = useState<string | null>(null);
+  const [openingAttachment, setOpeningAttachment] = useState<string | null>(
+    null,
+  );
+  async function openAttachment(attachment: EmailAttachment) {
+    try {
+      setOpeningAttachment(attachment.id);
 
+      const response = await fetch(attachment.url, {
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error(`Unable to open attachment (${response.status})`);
+      }
+
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+
+      window.open(blobUrl, "_blank", "noopener,noreferrer");
+
+      setTimeout(() => {
+        URL.revokeObjectURL(blobUrl);
+      }, 60_000);
+    } catch (error) {
+      console.error("Failed to open attachment:", error);
+    } finally {
+      setOpeningAttachment(null);
+    }
+  }
   useEffect(() => {
     if (!id) {
       return;
@@ -276,34 +304,54 @@ export default function EmailDetailsPage() {
         />
 
         {/* Attachments */}
+        {/* Attachments */}
         {email.attachments.length > 0 && (
           <div className="email-details-attachments">
             {email.attachments.map((attachment) => {
               const isImage = attachment.contentType?.startsWith("image/");
 
+              const isPdf = attachment.contentType === "application/pdf";
+
+              const isOpening = openingAttachment === attachment.id;
+
               return (
-                <a
+                <button
                   key={attachment.id}
-                  href={attachment.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  type="button"
                   className="email-attachment"
+                  onClick={() => openAttachment(attachment)}
+                  disabled={isOpening}
                 >
                   <div className="email-attachment-preview">
                     {isImage ? (
-                      <img src={attachment.url} alt={attachment.filename} />
+                      <div className="email-attachment-image-preview">
+                        <span>IMAGE</span>
+                      </div>
+                    ) : isPdf ? (
+                      <div className="email-attachment-pdf-preview">
+                        <span>PDF</span>
+                      </div>
                     ) : (
                       <div className="email-attachment-file">
-                        <span>FILE</span>
+                        <span>
+                          {attachment.filename
+                            .split(".")
+                            .pop()
+                            ?.toUpperCase() ?? "FILE"}
+                        </span>
                       </div>
                     )}
                   </div>
 
                   <div className="email-attachment-info">
                     <p>{attachment.filename}</p>
-                    <span>{formatFileSize(attachment.size)}</span>
+                    <span>
+                      {isOpening
+                        ? "Opening..."
+                        : formatFileSize(attachment.size)}
+                    </span>
                   </div>
-                </a>
+                </button>
               );
             })}
           </div>
