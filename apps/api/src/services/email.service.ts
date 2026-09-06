@@ -52,20 +52,7 @@ export async function listScheduledEmails(
   },
     ...(search
       ? {
-          OR: [
-            {
-              recipient: {
-                contains: search,
-                mode: "insensitive" as const,
-              },
-            },
-            {
-              subject: {
-                contains: search,
-                mode: "insensitive" as const,
-              },
-            },
-          ],
+          OR: [ { recipient: { contains: search, mode: "insensitive" as const, }, }, { subject: { contains: search, mode: "insensitive" as const, }, }, ],
         }
       : {}),
   };
